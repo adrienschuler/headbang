@@ -1,0 +1,53 @@
+version: '3.8'
+
+services:
+  headbang:
+    build: .
+    container_name: headbang
+    command: uvicorn app.main:app --host 0.0.0.0
+    volumes:
+      - .:/app
+    ports:
+      - 8000:8000
+    environment:
+      - ES_HOST=host.docker.internal
+      - SPOTIFY_OAUTH_TOKEN=
+    depends_on:
+      - elasticsearch
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.15.1
+    container_name: elasticsearch
+    volumes:
+      - elasticsearch_data:/var/lib/elasticsearch/data/
+    ports:
+      - 9200:9200
+      - 9300:9300
+    environment:
+      - xpack.security.enabled=false
+      - discovery.type=single-node
+      - cluster.name=docker-cluster
+      - network.host=0.0.0.0
+    volumes:
+      - elasticsearch-data:/usr/share/elasticsearch/data
+
+  kibana:
+    container_name: kibana
+    image: docker.elastic.co/kibana/kibana:7.15.1
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+    ports:
+      - 5601:5601
+    depends_on:
+      - elasticsearch
+
+  luigi:
+    build: .
+    container_name: luigi
+    command: luigid
+    ports:
+      - 8082:8082
+
+volumes:
+  elasticsearch-data:
+    driver: local
